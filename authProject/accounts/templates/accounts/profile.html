@@ -10,25 +10,42 @@
 </head>
 <body class="bg-gray-50 min-h-screen py-8 px-4">
     <div id="loadingSpinner" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white rounded-lg p-8 text-center">
+        <div class="bg-white rounded-2xl p-8 text-center">
             <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
             <p class="text-gray-600 text-sm mt-4">Loading profile...</p>
         </div>
     </div>
 
     <div id="profileContent" class="hidden max-w-4xl mx-auto">
-        <div class="bg-white rounded-lg shadow-md border border-gray-200 p-8 mb-6">
+        <div class="bg-white rounded-2xl shadow-md border border-gray-200 p-8 mb-6">
             <div class="flex justify-between items-center mb-4">
                 <h1 id="welcomeMsg" class="text-4xl font-bold text-gray-800">Welcome!</h1>
-                <button onclick="logout()" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-6 rounded-lg transition">
-                    Logout
-                </button>
+                <div class="flex gap-3">
+                    <button onclick="openEditProfileModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-6 rounded-2xl transition">
+                        Edit Profile
+                    </button>
+                    <button onclick="logout()" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-6 rounded-2xl transition">
+                        Logout
+                    </button>
+                </div>
             </div>
             <p class="text-gray-600">Your profile has been created successfully. Verify your email and mobile number to complete the setup.</p>
         </div>
 
-        <div class="bg-white rounded-lg shadow-md border border-gray-200 p-8 mb-6">
+        <div class="bg-white rounded-2xl shadow-md border border-gray-200 p-8 mb-6">
             <h2 class="text-2xl font-bold text-gray-800 mb-6">Profile Details</h2>
+
+            <div class="flex justify-center mb-8">
+                <div class="relative">
+                    <img id="displayProfileImage" src="" alt="Profile Image" 
+                        class="w-48 h-48 rounded-full object-cover border-4 border-gray-300 hidden">
+                    <div id="displayNoImagePlaceholder" class="w-48 h-48 rounded-full bg-gray-200 flex items-center justify-center border-4 border-gray-300">
+                        <svg class="w-24 h-24 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div>
@@ -78,7 +95,7 @@
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <div class="bg-white rounded-lg shadow-md border border-gray-200 p-6">
+            <div class="bg-white rounded-2xl shadow-md border border-gray-200 p-6">
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-lg font-semibold text-gray-800">Email Verification</h3>
                     <span id="emailStatus" class="bg-amber-100 text-amber-800 text-sm font-semibold px-3 py-1 rounded-full">Pending</span>
@@ -86,7 +103,7 @@
                 <div id="email-section">
                     <div id="emailPending">
                         <p class="text-gray-600 text-sm mb-4">We'll send a verification code to your email address.</p>
-                        <button type="button" onclick="sendEmailOtp()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg transition">
+                        <button type="button" onclick="sendEmailOtp()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-2xl transition">
                             Send Verification Code
                         </button>
                     </div>
@@ -99,23 +116,23 @@
                             <p class="text-red-600 text-xs text-center mt-1">Time remaining to verify</p>
                         </div>
                         <div id="emailExpiredMsg" class="hidden bg-yellow-50 border border-yellow-300 rounded p-3 mb-4">
-                            <p class="text-yellow-800 font-semibold mb-2">⏰ OTP Expired</p>
+                            <p class="text-yellow-800 font-semibold mb-2">OTP Expired</p>
                             <p class="text-yellow-700 text-sm">Your OTP has expired. Please request a new one.</p>
                         </div>
                         <input type="text" id="emailOtpInput" maxlength="6" placeholder="000000"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-400 text-center text-2xl mb-4"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-2xl focus:outline-none focus:border-indigo-400 text-center text-2xl mb-4"
                             inputmode="numeric">
-                        <button type="button" id="emailVerifyBtn" onclick="verifyEmailOtp()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg transition">
+                        <button type="button" id="emailVerifyBtn" onclick="verifyEmailOtp()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-2xl transition">
                             Verify Email
                         </button>
-                        <button type="button" id="emailResendBtn" class="hidden w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg transition mt-2" onclick="resendEmailOtp()">
+                        <button type="button" id="emailResendBtn" class="hidden w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-2xl transition mt-2" onclick="resendEmailOtp()">
                             Resend OTP
                         </button>
                     </div>
                 </div>
             </div>
 
-            <div class="bg-white rounded-lg shadow-md border border-gray-200 p-6">
+            <div class="bg-white rounded-2xl shadow-md border border-gray-200 p-6">
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-lg font-semibold text-gray-800">Mobile Verification</h3>
                     <span id="mobileStatus" class="bg-amber-100 text-amber-800 text-sm font-semibold px-3 py-1 rounded-full">Pending</span>
@@ -123,7 +140,7 @@
                 <div id="mobile-section">
                     <div id="mobilePending">
                         <p class="text-gray-600 text-sm mb-4">We'll send a verification code to your mobile number.</p>
-                        <button type="button" onclick="sendMobileOtp()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg transition">
+                        <button type="button" onclick="sendMobileOtp()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-2xl transition">
                             Send Verification Code
                         </button>
                     </div>
@@ -136,27 +153,131 @@
                             <p class="text-red-600 text-xs text-center mt-1">Time remaining to verify</p>
                         </div>
                         <div id="mobileExpiredMsg" class="hidden bg-yellow-50 border border-yellow-300 rounded p-3 mb-4">
-                            <p class="text-yellow-800 font-semibold mb-2">⏰ OTP Expired</p>
+                            <p class="text-yellow-800 font-semibold mb-2">OTP Expired</p>
                             <p class="text-yellow-700 text-sm">Your OTP has expired. Please request a new one.</p>
                         </div>
                         <input type="text" id="mobileOtpInput" maxlength="6" placeholder="000000"
-                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-indigo-400 text-center text-2xl mb-4"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-2xl focus:outline-none focus:border-indigo-400 text-center text-2xl mb-4"
                             inputmode="numeric">
-                        <button type="button" id="mobileVerifyBtn" onclick="verifyMobileOtp()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg transition">
+                        <button type="button" id="mobileVerifyBtn" onclick="verifyMobileOtp()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-2xl transition">
                             Verify Mobile
                         </button>
-                        <button type="button" id="mobileResendBtn" class="hidden w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg transition mt-2" onclick="resendMobileOtp()">
+                        <button type="button" id="mobileResendBtn" class="hidden w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-2xl transition mt-2" onclick="resendMobileOtp()">
                             Resend OTP
                         </button>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <div id="errorContent" class="hidden max-w-md mx-auto bg-white rounded-lg shadow-md border border-gray-200 p-8 text-center mt-10">
+        <div id="editProfileModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-2xl shadow-lg max-w-2xl w-full max-h-screen overflow-y-auto">
+                <div class="sticky top-0 bg-white border-b border-gray-200 p-6 flex justify-between items-center">
+                    <h2 class="text-2xl font-bold text-gray-800">Edit Profile</h2>
+                    <button onclick="closeEditProfileModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+                </div>
+
+                <div class="p-6">
+                    <div id="editErrorMessage" class="hidden text-red-700 text-sm mb-4 p-4 bg-red-50 border border-red-200 rounded"></div>
+                    <div id="editSuccessMessage" class="hidden text-green-700 text-sm mb-4 p-4 bg-green-50 border border-green-200 rounded"></div>
+
+                    <div class="mb-6 text-center">
+                        <div id="profileImagePreviewContainer" class="relative inline-block">
+                            <img id="profileImagePreview" src="" alt="Profile Preview" 
+                                class="w-32 h-32 rounded-full object-cover border-4 border-gray-300 hidden">
+                            <div id="noImagePlaceholder" class="w-32 h-32 rounded-full bg-gray-200 flex items-center justify-center border-4 border-gray-300">
+                                <svg class="w-12 h-12 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <p id="error_profile_image" class="text-red-600 text-sm mt-2 hidden"></p>
+                    </div>
+
+                    <form id="editProfileForm" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {% csrf_token %}
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">First Name</label>
+                            <input type="text" id="editFirstName" name="first_name" maxlength="30"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-2xl focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-300 transition"
+                                oninput="validateField('first_name', this.value)" placeholder="John">
+                            <p id="error_first_name" class="text-red-600 text-sm mt-1 hidden"></p>
+                            <p class="text-xs text-gray-500 mt-1">Max 30 characters, letters only</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
+                            <input type="text" id="editLastName" name="last_name" maxlength="30"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-2xl focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-300 transition"
+                                oninput="validateField('last_name', this.value)" placeholder="Doe">
+                            <p id="error_last_name" class="text-red-600 text-sm mt-1 hidden"></p>
+                            <p class="text-xs text-gray-500 mt-1">Max 30 characters, letters only</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Company</label>
+                            <input type="text" id="editCompany" name="company" maxlength="100"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-2xl focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-300 transition"
+                                oninput="validateField('company', this.value)" placeholder="Your Company Name">
+                            <p id="error_company" class="text-red-600 text-sm mt-1 hidden"></p>
+                            <p class="text-xs text-gray-500 mt-1">Max 100 characters</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Job Title</label>
+                            <input type="text" id="editJobProfile" name="job_profile" maxlength="100"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-2xl focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-300 transition"
+                                oninput="validateField('job_profile', this.value)" placeholder="Senior Software Engineer">
+                            <p id="error_job_profile" class="text-red-600 text-sm mt-1 hidden"></p>
+                            <p class="text-xs text-gray-500 mt-1">Max 100 characters</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">State</label>
+                            <select id="editState" name="state"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-2xl focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-300 transition">
+                                <option value="">Select State</option>
+                            </select>
+                            <p id="error_state" class="text-red-600 text-sm mt-1 hidden"></p>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">City</label>
+                            <input type="text" id="editCity" name="city" maxlength="50"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-2xl focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-300 transition"
+                                oninput="validateField('city', this.value)" placeholder="Your city">
+                            <p id="error_city" class="text-red-600 text-sm mt-1 hidden"></p>
+                            <p class="text-xs text-gray-500 mt-1">Max 50 characters</p>
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Profile Image</label>
+                            <div class="flex items-center gap-4">
+                                <input type="file" id="editProfileImage" name="profile_image" accept="image/*"
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-2xl focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-300 transition"
+                                    onchange="validateProfileImage(this.files[0])">
+                                <button type="button" id="clearImageBtn" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-2xl transition text-sm hidden" onclick="clearProfileImage()">
+                                    Clear
+                                </button>
+                            </div>
+                            <p id="error_profile_image" class="text-red-600 text-sm mt-1 hidden"></p>
+                            <p class="text-xs text-gray-500 mt-1">Max 5MB. Supported: JPG, PNG, JPEG</p>
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <button type="button" onclick="submitEditProfile()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-2xl transition">
+                                Save Changes
+                            </button>
+                            <button type="button" onclick="closeEditProfileModal()" class="w-full bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 px-4 rounded-2xl transition mt-2">
+                                Cancel
+                            </button>
+                        </div>
+                    </form>
+
+    <div id="errorContent" class="hidden max-w-md mx-auto bg-white rounded-2xl shadow-md border border-gray-200 p-8 text-center mt-10">
         <p id="errorMsg" class="text-red-700 font-medium mb-6"></p>
-        <a href="/" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-6 rounded-lg inline-block">
+        <a href="/" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-6 rounded-2xl inline-block">
             Go Back Home
         </a>
     </div>
@@ -165,6 +286,7 @@
         const accessToken = localStorage.getItem('access_token');
         let emailTimerInterval = null;
         let mobileTimerInterval = null;
+        let allStates = [];
 
         if (!accessToken) {
             console.warn('No access token found in localStorage');
@@ -173,6 +295,7 @@
         } else {
             console.log('Access token found:', accessToken.substring(0, 20) + '...', 'Loading profile...');
             loadProfile();
+            loadStates();
         }
 
         function showError(msg) {
@@ -200,6 +323,17 @@
                 document.getElementById('jobProfile').textContent = data.job_profile || '-';
                 document.getElementById('state').textContent = data.state || 'Not specified';
                 document.getElementById('city').textContent = data.city || 'Not specified';
+
+                if (data.profile_image) {
+                    const profileImage = document.getElementById('displayProfileImage');
+                    const noImagePlaceholder = document.getElementById('displayNoImagePlaceholder');
+                    profileImage.src = data.profile_image;
+                    profileImage.classList.remove('hidden');
+                    noImagePlaceholder.classList.add('hidden');
+                } else {
+                    document.getElementById('displayProfileImage').classList.add('hidden');
+                    document.getElementById('displayNoImagePlaceholder').classList.remove('hidden');
+                }
 
                 if (data.email_verified) {
                     document.getElementById('emailStatus').textContent = '✓ Verified';
@@ -497,6 +631,433 @@
                 localStorage.removeItem('user_id');
                 localStorage.removeItem('email');
                 window.location.href = '/';
+            });
+        }
+
+        function loadStates() {
+            axios.get('/api/registration/get_states/', {
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`
+                }
+            })
+            .then(response => {
+                if (response.data.success && response.data.states) {
+                    allStates = response.data.states;
+                }
+            })
+            .catch(error => {
+                console.error('Error loading states:', error);
+            });
+        }
+
+        function openEditProfileModal() {
+
+            document.getElementById('editFirstName').value = document.getElementById('firstName').textContent;
+            document.getElementById('editLastName').value = document.getElementById('lastName').textContent;
+            document.getElementById('editCompany').value = document.getElementById('company').textContent;
+            document.getElementById('editJobProfile').value = document.getElementById('jobProfile').textContent;
+            document.getElementById('editCity').value = document.getElementById('city').textContent;
+
+            const profileImagePreview = document.getElementById('profileImagePreview');
+            const noImagePlaceholder = document.getElementById('noImagePlaceholder');
+            
+            axios.get('/api/users/profile/', {
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`
+                }
+            })
+            .then(response => {
+                if (response.data.profile_image) {
+                    profileImagePreview.src = response.data.profile_image;
+                    profileImagePreview.classList.remove('hidden');
+                    noImagePlaceholder.classList.add('hidden');
+                    document.getElementById('clearImageBtn').classList.remove('hidden');
+                } else {
+                    profileImagePreview.classList.add('hidden');
+                    noImagePlaceholder.classList.remove('hidden');
+                    document.getElementById('clearImageBtn').classList.add('hidden');
+                }
+            })
+            .catch(error => {
+                console.error('Error loading profile:', error);
+            });
+
+            if (allStates.length === 0) {
+                loadStatesForModal();
+            } else {
+                populateStateSelect();
+            }
+
+            document.getElementById('editProfileModal').classList.remove('hidden');
+        }
+
+        function validateProfileImage(file) {
+            const errorDiv = document.getElementById('error_profile_image');
+            const fileInput = document.getElementById('editProfileImage');
+            const MAX_SIZE = 5 * 1024 * 1024;
+            const ALLOWED_FORMATS = ['jpeg', 'jpg', 'png'];
+
+            errorDiv.classList.add('hidden');
+            errorDiv.textContent = '';
+
+            if (!file) {
+                return true;
+            }
+
+            if (file.size > MAX_SIZE) {
+                errorDiv.textContent = 'Profile image size cannot exceed 5MB.';
+                errorDiv.classList.remove('hidden');
+                fileInput.value = '';
+                return false;
+            }
+
+            const fileExtension = file.name.split('.').pop().toLowerCase();
+            if (!ALLOWED_FORMATS.includes(fileExtension)) {
+                errorDiv.textContent = `Invalid image format. Allowed formats: ${ALLOWED_FORMATS.join(', ')}`;
+                errorDiv.classList.remove('hidden');
+                fileInput.value = '';
+                return false;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const preview = document.getElementById('profileImagePreview');
+                const placeholder = document.getElementById('noImagePlaceholder');
+                const clearBtn = document.getElementById('clearImageBtn');
+                
+                preview.src = e.target.result;
+                preview.classList.remove('hidden');
+                placeholder.classList.add('hidden');
+                clearBtn.classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+
+            return true;
+        }
+
+        function clearProfileImage() {
+            const fileInput = document.getElementById('editProfileImage');
+            const preview = document.getElementById('profileImagePreview');
+            const placeholder = document.getElementById('noImagePlaceholder');
+            const clearBtn = document.getElementById('clearImageBtn');
+            const errorDiv = document.getElementById('error_profile_image');
+
+            fileInput.value = '';
+            preview.classList.add('hidden');
+            placeholder.classList.remove('hidden');
+            clearBtn.classList.add('hidden');
+            errorDiv.classList.add('hidden');
+        }
+
+        function closeEditProfileModal() {
+            document.getElementById('editProfileModal').classList.add('hidden');
+            document.getElementById('editErrorMessage').classList.add('hidden');
+            document.getElementById('editSuccessMessage').classList.add('hidden');
+            
+            const fields = ['first_name', 'last_name', 'company', 'job_profile', 'city'];
+            fields.forEach(fieldName => {
+                const errorElement = document.getElementById(`error_${fieldName}`);
+                const inputElement = fieldName === 'first_name' ? document.getElementById('editFirstName') :
+                                     fieldName === 'last_name' ? document.getElementById('editLastName') :
+                                     fieldName === 'company' ? document.getElementById('editCompany') :
+                                     fieldName === 'job_profile' ? document.getElementById('editJobProfile') :
+                                     fieldName === 'city' ? document.getElementById('editCity') : null;
+                                     
+                if (errorElement) {
+                    errorElement.classList.add('hidden');
+                }
+                if (inputElement) {
+                    inputElement.classList.remove('border-red-500', 'border-green-500');
+                    inputElement.classList.add('border-gray-300');
+                }
+            });
+
+            document.getElementById('editProfileImage').value = '';
+            document.getElementById('error_profile_image').classList.add('hidden');
+        }
+
+        function loadStatesForModal() {
+            fetch('/api/registration/get_states/', {
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.states) {
+                    allStates = data.states;
+                }
+                populateStateSelect();
+            })
+            .catch(error => {
+                console.error('Error loading states:', error);
+                populateStateSelect();
+            });
+        }
+
+        function populateStateSelect() {
+            const stateSelect = document.getElementById('editState');
+            const currentState = document.getElementById('state').textContent;
+            
+            while (stateSelect.options.length > 1) {
+                stateSelect.remove(1);
+            }
+
+            if (stateSelect.options[0].value === '') {
+                stateSelect.options[0].text = 'Select State';
+            }
+
+            if (allStates && allStates.length > 0) {
+                allStates.forEach(state => {
+                    const option = document.createElement('option');
+                    option.value = state.id;
+                    option.text = state.name;
+                    if (state.name === currentState) {
+                        option.selected = true;
+                    }
+                    stateSelect.appendChild(option);
+                });
+            }
+        }
+
+        const validationRules = {
+            first_name: {
+                name: 'First name',
+                required: true,
+                trim: true,
+                spaces: true,
+                maxLength: 30,
+                pattern: /^[a-zA-Z\s\'-]+$/,
+                patternError: 'can only contain letters, spaces'
+            },
+            last_name: {
+                name: 'Last name',
+                required: true,
+                trim: true,
+                spaces: true,
+                maxLength: 30,
+                pattern: /^[a-zA-Z\s\'-]+$/,
+                patternError: 'can only contain letters, spaces'
+            },
+            company: {
+                name: 'Company',
+                required: true,
+                trim: true,
+                spaces: true,
+                maxLength: 100,
+                minLength: 2
+            },
+            job_profile: {
+                name: 'Job profile',
+                required: true,
+                trim: true,
+                spaces: true,
+                maxLength: 100,
+                minLength: 2
+            },
+            city: {
+                name: 'City',
+                required: true,
+                trim: true,
+                spaces: true,
+                maxLength: 30,
+                minLength: 2
+            }
+        };
+
+        function validateEditField(value, rules) {
+            if (!value) return rules.required ? `${rules.name} is required` : null;
+            
+            if (rules.trim && value !== value.trim()) {
+                return `${rules.name} cannot have leading or trailing spaces`;
+            }
+            
+            if (rules.noSpace && / /.test(value)) {
+                return `${rules.name} cannot contain spaces`;
+            }
+            
+            if (rules.spaces && /  /.test(value)) {
+                return `${rules.name} cannot have multiple consecutive spaces`;
+            }
+            
+            if (rules.minLength && value.trim().length < rules.minLength) {
+                return `${rules.name} must be at least ${rules.minLength} characters long`;
+            }
+            
+            if (rules.maxLength && value.length > rules.maxLength) {
+                return `${rules.name} cannot exceed ${rules.maxLength} characters`;
+            }
+            
+            if (rules.pattern && !rules.pattern.test(value)) {
+                return `${rules.name} ${rules.patternError || 'is invalid'}`;
+            }
+            
+            return null;
+        }
+
+        function validateField(fieldName, value) {
+            const errorElement = document.getElementById(`error_${fieldName}`);
+            const inputElement = fieldName === 'first_name' ? document.getElementById('editFirstName') :
+                                 fieldName === 'last_name' ? document.getElementById('editLastName') :
+                                 fieldName === 'company' ? document.getElementById('editCompany') :
+                                 fieldName === 'job_profile' ? document.getElementById('editJobProfile') :
+                                 fieldName === 'city' ? document.getElementById('editCity') : null;
+
+            if (!errorElement || !inputElement) return true;
+
+            const rule = validationRules[fieldName];
+            if (!rule) return true;
+
+            const error = validateEditField(value, rule);
+            
+            if (error) {
+                errorElement.textContent = error;
+                errorElement.classList.remove('hidden');
+                inputElement.classList.add('border-red-500');
+                inputElement.classList.remove('border-green-500');
+                return false;
+            } else if (value === '') {
+                errorElement.classList.add('hidden');
+                inputElement.classList.remove('border-red-500', 'border-green-500');
+                return true;
+            } else {
+                errorElement.classList.add('hidden');
+                inputElement.classList.remove('border-red-500');
+                inputElement.classList.add('border-green-500');
+                return true;
+            }
+        }
+
+        function validateAllFields() {
+            const fields = ['first_name', 'last_name', 'company', 'job_profile', 'city'];
+            let allValid = true;
+
+            fields.forEach(fieldName => {
+                const inputElement = fieldName === 'first_name' ? document.getElementById('editFirstName') :
+                                     fieldName === 'last_name' ? document.getElementById('editLastName') :
+                                     fieldName === 'company' ? document.getElementById('editCompany') :
+                                     fieldName === 'job_profile' ? document.getElementById('editJobProfile') :
+                                     fieldName === 'city' ? document.getElementById('editCity') : null;
+
+                if (inputElement) {
+                    const isValid = validateField(fieldName, inputElement.value);
+                    if (!isValid) allValid = false;
+                }
+            });
+
+            return allValid;
+        }
+
+        function submitEditProfile() {
+            if (!validateAllFields()) {
+                const errorDiv = document.getElementById('editErrorMessage');
+                errorDiv.textContent = 'Please fix the validation errors before submitting.';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+
+            const fileInput = document.getElementById('editProfileImage');
+            if (fileInput.files.length > 0) {
+                if (!validateProfileImage(fileInput.files[0])) {
+                    return;
+                }
+            }
+
+            const formDataObj = new FormData();
+            formDataObj.append('first_name', document.getElementById('editFirstName').value.trim());
+            formDataObj.append('last_name', document.getElementById('editLastName').value.trim());
+            formDataObj.append('company', document.getElementById('editCompany').value.trim());
+            formDataObj.append('job_profile', document.getElementById('editJobProfile').value.trim());
+            formDataObj.append('city', document.getElementById('editCity').value.trim());
+
+            const stateSelect = document.getElementById('editState');
+            if (stateSelect.value) {
+                formDataObj.append('state', stateSelect.value);
+            }
+
+            if (fileInput.files.length > 0) {
+                formDataObj.append('profile_image', fileInput.files[0]);
+            }
+
+            const errorDiv = document.getElementById('editErrorMessage');
+            const successDiv = document.getElementById('editSuccessMessage');
+            
+            errorDiv.classList.add('hidden');
+            successDiv.classList.add('hidden');
+
+            axios.post('/api/users/update_profile/', formDataObj, {
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Content-Type': 'multipart/form-data'
+                }
+            })
+            .then(response => {
+                if (response.data.success) {
+                    document.getElementById('firstName').textContent = response.data.data.first_name || '-';
+                    document.getElementById('lastName').textContent = response.data.data.last_name || '-';
+                    document.getElementById('company').textContent = response.data.data.company || '-';
+                    document.getElementById('jobProfile').textContent = response.data.data.job_profile || '-';
+                    document.getElementById('city').textContent = response.data.data.city || '-';
+                    document.getElementById('state').textContent = response.data.data.state || 'Not specified';
+
+                    if (response.data.data.profile_image) {
+                        const preview = document.getElementById('profileImagePreview');
+                        preview.src = response.data.data.profile_image;
+                    }
+
+                    successDiv.textContent = '✓ Profile updated successfully!';
+                    successDiv.classList.remove('hidden');
+
+                    setTimeout(() => {
+                        closeEditProfileModal();
+                    }, 1500);
+                } else {
+                    errorDiv.textContent = response.data.message || 'Failed to update profile';
+                    errorDiv.classList.remove('hidden');
+                }
+            })
+            .catch(error => {
+                console.error('Error updating profile:', error);
+                let errorMsg = 'An error occurred while updating your profile.';
+                
+                if (error.response?.data) {
+                    if (typeof error.response.data === 'object') {
+                        const fieldErrors = {};
+                        
+                        for (const [field, messages] of Object.entries(error.response.data)) {
+                            const errorMessage = Array.isArray(messages) ? messages[0] : messages;
+                            fieldErrors[field] = errorMessage;
+                            
+                            const errorElement = document.getElementById(`error_${field}`);
+                            if (errorElement) {
+                                errorElement.textContent = errorMessage;
+                                errorElement.classList.remove('hidden');
+                                const inputElement = field === 'first_name' ? document.getElementById('editFirstName') :
+                                                     field === 'last_name' ? document.getElementById('editLastName') :
+                                                     field === 'company' ? document.getElementById('editCompany') :
+                                                     field === 'job_profile' ? document.getElementById('editJobProfile') :
+                                                     field === 'city' ? document.getElementById('editCity') : null;
+                                if (inputElement) {
+                                    inputElement.classList.add('border-red-500');
+                                    inputElement.classList.remove('border-gray-300', 'border-green-500');
+                                }
+                            }
+                        }
+                        
+                        if (Object.keys(fieldErrors).length > 0) {
+                            errorMsg = 'Please fix the validation errors above.';
+                        }
+                    } else if (error.response.data.message) {
+                        errorMsg = error.response.data.message;
+                    } else if (error.response.data.error) {
+                        errorMsg = error.response.data.error;
+                    }
+                } else if (error.message) {
+                    errorMsg = error.message;
+                }
+                
+                errorDiv.textContent = errorMsg;
+                errorDiv.classList.remove('hidden');
             });
         }
     </script>
