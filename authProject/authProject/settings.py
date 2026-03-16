@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -133,6 +134,9 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+MEDIA_URL = 'media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'accounts.auth.SingleSessionJWTAuthentication',
@@ -161,6 +165,6 @@ SIMPLE_JWT = {
     'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=1),
 }
 
-# TWILIO_ACCOUNT_SID = 'AC319fb29a10464c5f5b184a44ff0b1242'  
-# TWILIO_AUTH_TOKEN = 'a321ece0f5699c13e67682db93d934a6' 
-# TWILIO_PHONE_NUMBER = '+14302094662'  
+TWILIO_ACCOUNT_SID = 'AC319fb29a10464c5f5b184a44ff0b1242'  
+TWILIO_AUTH_TOKEN = 'a321ece0f5699c13e67682db93d934a6' 
+TWILIO_PHONE_NUMBER = '+14302094662'  

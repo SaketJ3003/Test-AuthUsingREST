@@ -9,21 +9,20 @@ from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from django.conf import settings
 from django.shortcuts import render, redirect
-from django.contrib.auth import authenticate, login
-from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_http_methods
 from datetime import timedelta
 import secrets
 import random
 
 from .serializers import (
-    SignUpProfileSerializer, LoginSerializer, EmailCheckSerializer,
+    SignUpProfileSerializer, EmailCheckSerializer,
     PasswordValidationSerializer, RegistrationEmailSerializer,
     VerifyEmailOtpSerializer, VerifyRegistrationOtpSerializer,
-    CreateProfileSerializer, UserProfileSerializer
+    CreateProfileSerializer, UserProfileSerializer, LoginOTPRequestSerializer,
+    LoginOTPVerifySerializer
 )
 from .models import (
-    UserInfo, UserToken, VerificationOtp, TempUser, TempOtp,
+    UserInfo, UserToken, OTP, TempUser,
     EmailVerificationToken, State
 )
 
@@ -41,14 +40,16 @@ def get_profile_context(user):
     except UserInfo.DoesNotExist:
         return None
     
-    email_otp = VerificationOtp.objects.filter(
-        user=user, 
+    email_otp = OTP.objects.filter(
+        user=user,
+        otp_type='verification',
         verification_type='email',
         is_used=False
     ).first()
     
-    mobile_otp = VerificationOtp.objects.filter(
+    mobile_otp = OTP.objects.filter(
         user=user,
+        otp_type='verification',
         verification_type='mobile',
         is_used=False
     ).first()
@@ -97,13 +98,54 @@ def create_profile_page(request):
                 'error': 'Registration link has expired. Please start over.'
             })
 
-        states = State.objects.all()
-        context = {
-            'email': verification_token.email,
-            'token': token,
-            'states': states
-        }
-        return render(request, 'accounts/create_profile.html', context)
+        email = verification_token.email.lower()
+        
+        try:
+            temp_user = TempUser.objects.get(email=email)
+            
+            otp = ''.join(random.choices('0123456789', k=6))
+            otp_expires_at = timezone.now() + timedelta(minutes=2)
+            
+            OTP.objects.filter(email=email, otp_type='registration').delete()
+            OTP.objects.create(
+                email=email,
+                otp_type='registration',
+                otp=otp,
+                expires_at=otp_expires_at
+            )
+            
+            try:
+                html_message = render_to_string('accounts/email_otp.html', {
+                    'email': email,
+                    'otp': otp,
+                    'first_name': temp_user.first_name,
+                    'type': 'registration'
+                })
+                plain_message = strip_tags(html_message)
+                
+                from_email = getattr(settings, 'EMAIL_HOST_USER', 'noreply@authproject.com')
+                
+                send_mail(
+                    subject='Verify Your Email - OTP',
+                    message=plain_message,
+                    from_email=from_email,
+                    recipient_list=[email],
+                    html_message=html_message,
+                    fail_silently=False,
+                )
+            except Exception as e:
+                pass
+            
+            return redirect(f"/verify-email-otp/?email={email}&otp_expires_at={otp_expires_at.isoformat()}")
+        
+        except TempUser.DoesNotExist:
+            states = State.objects.all()
+            context = {
+                'email': email,
+                'token': token,
+                'states': states
+            }
+            return render(request, 'accounts/create_profile.html', context)
 
     except EmailVerificationToken.DoesNotExist:
         return render(request, 'accounts/homepage.html', {
@@ -151,18 +193,201 @@ class LoginViewSet(viewsets.ViewSet):
     permission_classes = [AllowAny]
 
     def create(self, request):
-        serializer = LoginSerializer(data=request.data)
+        serializer = LoginOTPRequestSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.validated_data['user']
-            tokens = serializer.get_tokens(user)
-            return Response(
-                {
-                    'message': 'Login successful',
-                    'tokens': tokens
-                },
-                status=status.HTTP_200_OK
-            )
+            
+            try:
+                otp = ''.join(random.choices('0123456789', k=6))
+                expires_at = timezone.now() + timedelta(minutes=2)
+                
+                OTP.objects.filter(
+                    user=user,
+                    otp_type='verification',
+                    verification_type='login',
+                    is_used=False
+                ).delete()
+                
+                otp_obj = OTP.objects.create(
+                    user=user,
+                    otp_type='verification',
+                    verification_type='login',
+                    otp=otp,
+                    expires_at=expires_at
+                )
+                
+                html_message = f"""
+                <div style="font-family: Arial, sans-serif; text-align: center; padding: 20px;">
+                    <div style="background-color: #f5f5f5; padding: 30px; border-radius: 8px; max-width: 400px; margin: 0 auto;">
+                        <h2 style="color: #333;">Login Verification</h2>
+                        <p style="color: #666; font-size: 14px;">Your OTP for login is:</p>
+                        <div style="background-color: #1f2937; color: #fff; padding: 15px; border-radius: 6px; font-size: 28px; font-weight: bold; letter-spacing: 5px; margin: 20px 0;">
+                            {otp}
+                        </div>
+                        <p style="color: #999; font-size: 12px;">This code expires in 2 minutes</p>
+                    </div>
+                </div>
+                """
+                plain_message = f'Your login OTP is: {otp}. This code expires in 2 minutes.'
+                
+                from_email = getattr(settings, 'EMAIL_HOST_USER', 'noreply@authproject.com')
+                send_mail(
+                    subject='Your Login OTP',
+                    message=plain_message,
+                    from_email=from_email,
+                    recipient_list=[user.email],
+                    html_message=html_message,
+                    fail_silently=False,
+                )
+                
+                return Response(
+                    {
+                        'success': True,
+                        'message': f'OTP has been sent to {user.email}. Please enter it to complete login.',
+                        'email': user.email,
+                        'otp_expires_at': expires_at.isoformat()
+                    },
+                    status=status.HTTP_200_OK
+                )
+            
+            except Exception as e:
+                return Response(
+                    {
+                        'success': False,
+                        'message': 'Error sending OTP. Please try again.'
+                    },
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+        
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=False, methods=['post'])
+    def verify_otp(self, request):
+        serializer = LoginOTPVerifySerializer(data=request.data)
+        if serializer.is_valid():
+            try:
+                user = serializer.validated_data['user']
+                otp_record = serializer.validated_data['otp_record']
+                
+                otp_record.is_used = True
+                otp_record.save()
+                
+                from rest_framework_simplejwt.tokens import RefreshToken
+                UserToken.objects.filter(user=user).delete()
+                refresh = RefreshToken.for_user(user)
+                
+                UserToken.objects.create(
+                    user=user,
+                    access_token=str(refresh.access_token),
+                    refresh_token=str(refresh)
+                )
+                
+                return Response(
+                    {
+                        'success': True,
+                        'message': 'Login successful',
+                        'tokens': {
+                            'access_token': str(refresh.access_token),
+                            'refresh_token': str(refresh),
+                            'user_id': user.id,
+                            'email': user.email,
+                            'first_name': user.first_name,
+                            'last_name': user.last_name
+                        }
+                    },
+                    status=status.HTTP_200_OK
+                )
+            
+            except Exception as e:
+                return Response(
+                    {
+                        'success': False,
+                        'message': f'Error completing login: {str(e)}'
+                    },
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=False, methods=['post'])
+    def resend_otp(self, request):
+        email = request.data.get('email', '').lower()
+        
+        if not email:
+            return Response(
+                {'success': False, 'message': 'Email is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            user = User.objects.get(email=email)
+            
+            try:
+                otp = ''.join(random.choices('0123456789', k=6))
+                expires_at = timezone.now() + timedelta(minutes=2)
+                
+                OTP.objects.filter(
+                    user=user,
+                    otp_type='verification',
+                    verification_type='login',
+                    is_used=False
+                ).delete()
+                
+                otp_obj = OTP.objects.create(
+                    user=user,
+                    otp_type='verification',
+                    verification_type='login',
+                    otp=otp,
+                    expires_at=expires_at
+                )
+                
+                html_message = f"""
+                <div style="font-family: Arial, sans-serif; text-align: center; padding: 20px;">
+                    <div style="background-color: #f5f5f5; padding: 30px; border-radius: 8px; max-width: 400px; margin: 0 auto;">
+                        <h2 style="color: #333;">Login Verification</h2>
+                        <p style="color: #666; font-size: 14px;">Your OTP for login is:</p>
+                        <div style="background-color: #1f2937; color: #fff; padding: 15px; border-radius: 6px; font-size: 28px; font-weight: bold; letter-spacing: 5px; margin: 20px 0;">
+                            {otp}
+                        </div>
+                        <p style="color: #999; font-size: 12px;">This code expires in 2 minutes</p>
+                    </div>
+                </div>
+                """
+                plain_message = f'Your login OTP is: {otp}. This code expires in 2 minutes.'
+                
+                from_email = getattr(settings, 'EMAIL_HOST_USER', 'noreply@authproject.com')
+                send_mail(
+                    subject='Your Login OTP',
+                    message=plain_message,
+                    from_email=from_email,
+                    recipient_list=[user.email],
+                    html_message=html_message,
+                    fail_silently=False,
+                )
+                
+                return Response(
+                    {
+                        'success': True,
+                        'message': f'New OTP has been sent to {user.email}',
+                        'otp_expires_at': expires_at.isoformat()
+                    },
+                    status=status.HTTP_200_OK
+                )
+            
+            except Exception as e:
+                return Response(
+                    {
+                        'success': False,
+                        'message': 'Error sending OTP. Please try again.'
+                    },
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+        
+        except User.DoesNotExist:
+            return Response(
+                {'success': False, 'message': 'User not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
 
 
 class UserViewSet(viewsets.ViewSet):
@@ -178,6 +403,38 @@ class UserViewSet(viewsets.ViewSet):
             return Response(
                 {"error": "User profile not found"},
                 status=status.HTTP_404_NOT_FOUND
+            )
+
+    @action(detail=False, methods=['post'])
+    def update_profile(self, request):
+        try:
+            from .serializers import UpdateProfileSerializer
+            user_info = UserInfo.objects.get(user=request.user)
+            serializer = UpdateProfileSerializer(
+                data=request.data,
+                context={'user_id': request.user.id}
+            )
+            if serializer.is_valid():
+                serializer.update(request.user, serializer.validated_data)
+                profile_serializer = UserProfileSerializer(request.user)
+                return Response(
+                    {
+                        'success': True,
+                        'message': 'Profile updated successfully',
+                        'data': profile_serializer.data
+                    },
+                    status=status.HTTP_200_OK
+                )
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except UserInfo.DoesNotExist:
+            return Response(
+                {"error": "User profile not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
     @action(detail=False, methods=['post'])
@@ -290,14 +547,16 @@ class SendOtpViewSet(viewsets.ViewSet):
             otp = ''.join(random.choices('0123456789', k=6))
             expires_at = timezone.now() + timedelta(minutes=2)
             
-            VerificationOtp.objects.filter(
+            OTP.objects.filter(
                 user=request.user,
+                otp_type='verification',
                 verification_type='email',
                 is_used=False
             ).delete()
             
-            otp_obj = VerificationOtp.objects.create(
+            otp_obj = OTP.objects.create(
                 user=request.user,
+                otp_type='verification',
                 verification_type='email',
                 otp=otp,
                 expires_at=expires_at
@@ -364,14 +623,16 @@ class SendOtpViewSet(viewsets.ViewSet):
             otp = ''.join(random.choices('0123456789', k=6))
             expires_at = timezone.now() + timedelta(minutes=2)
             
-            VerificationOtp.objects.filter(
+            OTP.objects.filter(
                 user=request.user,
+                otp_type='verification',
                 verification_type='mobile',
                 is_used=False
             ).delete()
             
-            VerificationOtp.objects.create(
+            OTP.objects.create(
                 user=request.user,
+                otp_type='verification',
                 verification_type='mobile',
                 otp=otp,
                 expires_at=expires_at
@@ -426,8 +687,9 @@ class VerifyOtpViewSet(viewsets.ViewSet):
             otp = serializer.validated_data.get('otp')
             
             try:
-                otp_record = VerificationOtp.objects.filter(
+                otp_record = OTP.objects.filter(
                     user=request.user,
+                    otp_type='verification',
                     verification_type=verification_type,
                     is_used=False
                 ).first()
@@ -482,6 +744,14 @@ class VerifyOtpViewSet(viewsets.ViewSet):
 class RegistrationViewSet(viewsets.ViewSet):
     permission_classes = [AllowAny]
 
+    @action(detail=False, methods=['get'])
+    def get_states(self, request):
+        states = State.objects.all().values('id', 'name')
+        return Response({
+            'success': True,
+            'states': list(states)
+        }, status=status.HTTP_200_OK)
+
     @action(detail=False, methods=['post'])
     def create_profile(self, request):
         serializer = CreateProfileSerializer(data=request.data)
@@ -493,6 +763,8 @@ class RegistrationViewSet(viewsets.ViewSet):
 
                 state = serializer.validated_data.get('state')
 
+                from django.contrib.auth.hashers import make_password
+                
                 temp_user, created = TempUser.objects.update_or_create(
                     email=email,
                     defaults={
@@ -503,7 +775,7 @@ class RegistrationViewSet(viewsets.ViewSet):
                         'job_profile': serializer.validated_data['job_profile'],
                         'state': state,
                         'city': serializer.validated_data.get('city', ''),
-                        'password': password,
+                        'password': make_password(password),
                         'email_verified': False
                     }
                 )
@@ -515,9 +787,10 @@ class RegistrationViewSet(viewsets.ViewSet):
                 otp_expires_at = timezone.now() + timedelta(minutes=2)
 
                 email_lower = email.lower()
-                TempOtp.objects.filter(email=email_lower).delete()
-                TempOtp.objects.create(
+                OTP.objects.filter(email=email_lower, otp_type='registration').delete()
+                OTP.objects.create(
                     email=email_lower,
+                    otp_type='registration',
                     otp=otp,
                     expires_at=otp_expires_at
                 )
@@ -574,12 +847,12 @@ class RegistrationViewSet(viewsets.ViewSet):
                 otp_record.is_used = True
                 otp_record.save()
                 
-                user = User.objects.create_user(
+                user = User.objects.create(
                     username=email,
                     email=email,
                     first_name=temp_user.first_name,
                     last_name=temp_user.last_name,
-                    password=temp_user.password
+                    password=temp_user.password 
                 )
                 
                 UserInfo.objects.create(
@@ -640,9 +913,10 @@ class RegistrationViewSet(viewsets.ViewSet):
             otp = ''.join(random.choices('0123456789', k=6))
             otp_expires_at = timezone.now() + timedelta(minutes=2)
 
-            TempOtp.objects.filter(email=email).delete()
-            TempOtp.objects.create(
+            OTP.objects.filter(email=email, otp_type='registration').delete()
+            OTP.objects.create(
                 email=email,
+                otp_type='registration',
                 otp=otp,
                 expires_at=otp_expires_at
             )
