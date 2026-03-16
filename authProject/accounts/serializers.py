@@ -1,0 +1,254 @@
+from rest_framework import serializers
+from django.contrib.auth.models import User
+from .models import UserInfo, UserToken, VerificationOtp, TempUser, State
+from rest_framework_simplejwt.tokens import RefreshToken
+from django.utils import timezone
+import re
+
+
+class SignUpProfileSerializer(serializers.ModelSerializer):
+    first_name = serializers.CharField(max_length=30, required=True)
+    last_name = serializers.CharField(max_length=30, required=True)
+    password = serializers.CharField(write_only=True, min_length=8)
+    confirm_password = serializers.CharField(write_only=True, min_length=8)
+    mobile_number = serializers.CharField(source='info.mobile', max_length=10, required=False, allow_blank=True)
+    company = serializers.CharField(source='info.company', max_length=30)
+    job_profile = serializers.CharField(source='info.job_profile', max_length=20)
+    email = serializers.EmailField(read_only=True)
+
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'email', 'mobile_number', 'company', 'job_profile', 'password', 'confirm_password']
+
+    def validate_mobile_number(self, value):
+
+        if value and value.strip():
+            if not re.match(r'^[6-9]\d{9}$', value):
+                raise serializers.ValidationError(
+                    "Mobile number must be 10 digits starting with 6, 7, 8, or 9."
+                )
+        return value
+
+    def validate(self, data):
+        if data['password'] != data['confirm_password']:
+            raise serializers.ValidationError({"confirm_password": "Passwords do not match."})
+        return data
+
+    def create(self, validated_data):
+        validated_data.pop('confirm_password')
+        
+        info_data = validated_data.pop('info', {})
+        
+        # Create User
+        user = User.objects.create_user(
+            username=validated_data['email'],
+            email=validated_data['email'],
+            first_name=validated_data.get('first_name', ''),
+            last_name=validated_data.get('last_name', ''),
+            password=validated_data['password']
+        )
+        
+        # Create UserInfo
+        UserInfo.objects.create(
+            user=user,
+            mobile=info_data.get('mobile', ''),
+            company=info_data.get('company', ''),
+            job_profile=info_data.get('job_profile', '')
+        )
+        
+        return user
+
+
+class LoginSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True)
+
+    def validate(self, data):
+        email = data.get('email')
+        password = data.get('password')
+
+        if not email or not password:
+            raise serializers.ValidationError("Email and password are required.")
+
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            raise serializers.ValidationError("Invalid email or password.")
+
+        if not user.check_password(password):
+            raise serializers.ValidationError("Invalid email or password.")
+
+        data['user'] = user
+        return data
+
+    def get_tokens(self, user):
+        UserToken.objects.filter(user=user).delete()
+        
+        refresh = RefreshToken.for_user(user)
+        
+        UserToken.objects.create(
+            user=user,
+            access_token=str(refresh.access_token),
+            refresh_token=str(refresh)
+        )
+        
+        return {
+            'access_token': str(refresh.access_token),
+            'refresh_token': str(refresh),
+            'user_id': user.id,
+            'email': user.email,
+            'first_name': user.first_name,
+            'last_name': user.last_name
+        }
+
+    def create(self, validated_data):
+        user = validated_data['user']
+        return self.get_tokens(user)
+
+
+class EmailCheckSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    def validate(self, data):
+        email = data.get('email')
+        user_exists = User.objects.filter(email=email).exists()
+        data['exists'] = user_exists
+        return data
+
+
+class PasswordValidationSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True)
+
+    def validate(self, data):
+        email = data.get('email')
+        password = data.get('password')
+
+        try:
+            user = User.objects.get(email=email)
+            if user.check_password(password):
+                data['valid'] = True
+                data['message'] = 'Password is correct'
+            else:
+                data['valid'] = False
+                data['message'] = 'Incorrect password'
+        except User.DoesNotExist:
+            data['valid'] = False
+            data['message'] = 'Email not found'
+        
+        return data
+
+
+class RegistrationEmailSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("This email is already registered. Please login instead.")
+        return value
+
+
+class OTPSerializer(serializers.Serializer):
+    otp = serializers.CharField(max_length=6, min_length=6)
+    verification_type = serializers.ChoiceField(choices=['email', 'mobile'])
+    expires_at = serializers.DateTimeField(read_only=True)
+
+
+class VerifyEmailOtpSerializer(serializers.Serializer):
+    otp = serializers.CharField(max_length=6, min_length=6)
+    verification_type = serializers.ChoiceField(choices=['email', 'mobile'])
+
+    def validate(self, data):
+        otp = data.get('otp')
+        verification_type = data.get('verification_type')
+        
+        data['user'] = self.context.get('request').user if 'request' in self.context else None
+        return data
+
+
+class VerifyRegistrationOtpSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    otp = serializers.CharField(max_length=6, min_length=6)
+
+    def validate_email(self, value):
+        try:
+            TempUser.objects.get(email=value.lower())
+            return value
+        except TempUser.DoesNotExist:
+            raise serializers.ValidationError("Registration data not found. Please register again.")
+
+    def validate(self, data):
+        from .models import TempOtp
+        email = data.get('email').lower()
+        otp = data.get('otp')
+
+        otp_record = TempOtp.objects.filter(email=email, is_used=False).first()
+
+        if not otp_record:
+            raise serializers.ValidationError({'otp': 'No OTP found. Please request a new OTP.'})
+
+        if not timezone.now() < otp_record.expires_at:
+            raise serializers.ValidationError({'otp': 'OTP has expired. Please request a new one.'})
+
+        if otp_record.otp != otp:
+            raise serializers.ValidationError({'otp': 'Invalid OTP'})
+
+        data['otp_record'] = otp_record
+        return data
+
+
+class CreateProfileSerializer(serializers.Serializer):
+    first_name = serializers.CharField(max_length=30)
+    last_name = serializers.CharField(max_length=30)
+    mobile = serializers.CharField(max_length=10)
+    company = serializers.CharField(max_length=100)
+    job_profile = serializers.CharField(max_length=100)
+    state = serializers.PrimaryKeyRelatedField(queryset=State.objects.all(), required=False, allow_null=True)
+    city = serializers.CharField(max_length=50, required=False, allow_blank=True)
+    password = serializers.CharField(write_only=True, min_length=8)
+    confirm_password = serializers.CharField(write_only=True, min_length=8)
+    token = serializers.CharField(write_only=True)
+
+    def validate_mobile(self, value):
+        if not re.match(r'^[6-9]\d{9}$', value):
+            raise serializers.ValidationError("Mobile number must be 10 digits starting with 6, 7, 8, or 9.")
+        return value
+
+    def validate(self, data):
+        if data['password'] != data['confirm_password']:
+            raise serializers.ValidationError({"confirm_password": "Passwords do not match."})
+        
+        from .models import EmailVerificationToken
+        token = data.get('token')
+        
+        try:
+            verification_token = EmailVerificationToken.objects.get(token=token)
+            if not verification_token.is_valid():
+                raise serializers.ValidationError("Registration link has expired. Please start over.")
+            data['verification_token'] = verification_token
+            data['email'] = verification_token.email
+        except EmailVerificationToken.DoesNotExist:
+            raise serializers.ValidationError("Invalid registration link")
+        
+        return data
+
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    mobile = serializers.CharField(source='info.mobile')
+    company = serializers.CharField(source='info.company')
+    job_profile = serializers.CharField(source='info.job_profile')
+    state = serializers.CharField(source='info.state.name', allow_null=True)
+    city = serializers.CharField(source='info.city')
+    is_active = serializers.BooleanField(source='info.isActive')
+    email_verified = serializers.BooleanField(source='info.email_verified')
+    mobile_verified = serializers.BooleanField(source='info.mobile_verified')
+    created_at = serializers.DateTimeField(source='info.createdAt')
+    updated_at = serializers.DateTimeField(source='info.updatedAt')
+
+    class Meta:
+        model = User
+        fields = [
+            'id', 'email', 'first_name', 'last_name', 'mobile', 'company',
+            'job_profile', 'state', 'city', 'is_active', 'email_verified',
+            'mobile_verified', 'created_at', 'updated_at'
+        ]
