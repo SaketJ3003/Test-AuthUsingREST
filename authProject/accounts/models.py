@@ -12,7 +12,6 @@ class UserToken(models.Model):
     def __str__(self):
         return f"Token for {self.user.username}"
     
-    
 class State(models.Model):
     name = models.CharField(max_length=20, unique=True)
     

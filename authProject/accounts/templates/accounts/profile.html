@@ -140,7 +140,7 @@
                 <div id="mobile-section">
                     <div id="mobilePending">
                         <p class="text-gray-600 text-sm mb-4">We'll send a verification code to your mobile number.</p>
-                        <button type="button" onclick="sendMobileOtp()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-2xl transition">
+                        <button type="button" id="mobileOtp" onclick="sendMobileOtp()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-2xl transition">
                             Send Verification Code
                         </button>
                     </div>
@@ -393,6 +393,10 @@
         }
 
         function sendMobileOtp() {
+            const sendBtn = document.getElementById('mobileOtp');
+            sendBtn.disabled = true;
+            sendBtn.textContent = 'Sending...';
+
             axios.post('/api/send-otp/mobile/', {}, {
                 headers: {
                     'Authorization': `Bearer ${accessToken}`
@@ -403,10 +407,16 @@
                     document.getElementById('mobilePending').classList.add('hidden');
                     document.getElementById('mobileOtpSent').classList.remove('hidden');
                     startTimer('mobile', response.data.expires_at);
+                } else {
+                    alert('Error: ' + (response.data.message || 'Could not send OTP'));
+                    sendBtn.disabled = false;
+                    sendBtn.textContent = 'Send Verification Code';
                 }
             })
             .catch(error => {
                 alert('Error sending OTP: ' + (error.response?.data?.message || 'Please try again'));
+                sendBtn.disabled = false;
+                sendBtn.textContent = 'Send Verification Code';
             });
         }
 

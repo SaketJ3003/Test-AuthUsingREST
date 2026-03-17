@@ -11,6 +11,15 @@
         <h1 class="text-2xl font-semibold text-center text-gray-900 mb-2">Welcome Back</h1>
         <p class="text-center text-gray-600 text-sm mb-8">Sign in to your account</p>
         
+        {% if error %}
+        <div class="mb-4 p-4 bg-red-50 border border-red-200 rounded-2xl">
+            <p class="text-red-700 font-medium">{{ error }}</p>
+            {% if "expired" in error|lower or "invalid" in error|lower %}
+            <p class="text-red-600 text-sm mt-2">Please enter your email below to request a new registration link.</p>
+            {% endif %}
+        </div>
+        {% endif %}
+        
         <div id="errorMessage" class="hidden text-red-700 text-sm mb-4 p-3 bg-red-50 border border-red-200 rounded"></div>
         
         
@@ -44,19 +53,19 @@
                 Login
             </button>
             
-            <button type="button" onclick="resetForm()" class="w-full px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white font-medium rounded-2xl transition mt-3 shadow-sm">
+            {% comment %} <button type="button" onclick="resetForm()" class="w-full px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white font-medium rounded-2xl transition mt-3 shadow-sm">
                 Back
-            </button>
+            </button> {% endcomment %}
         </form>
         
         <div id="createProfileSection" class="hidden">
             <p class="text-gray-700 text-sm mb-4">This email is not registered yet. We'll send you a registration link via email.</p>
-            <button type="button" onclick="sendRegistrationEmail()" class="w-full px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-2xl transition shadow-sm">
+            <button type="button" id="sendLink" onclick="sendRegistrationEmail()" class="w-full px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-2xl transition shadow-sm">
                 Send Registration Link
             </button>
-            <button type="button" onclick="resetForm()" class="w-full px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white font-medium rounded-2xl transition mt-3 shadow-sm">
+            {% comment %} <button type="button" onclick="resetForm()" class="w-full px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white font-medium rounded-2xl transition mt-3 shadow-sm">
                 Back
-            </button>
+            </button> {% endcomment %}
         </div>
         
         <div id="otpSection" class="hidden">
@@ -93,9 +102,9 @@
                     Resend OTP
                 </button>
                 
-                <button type="button" onclick="backToPassword()" class="w-full px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white font-medium rounded-2xl transition mt-3 shadow-sm">
+                {% comment %} <button type="button" onclick="backToPassword()" class="w-full px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white font-medium rounded-2xl transition mt-3 shadow-sm">
                     Back
-                </button>
+                </button> {% endcomment %}
             </form>
         </div>
         
@@ -177,10 +186,16 @@
         }
 
         function sendRegistrationEmail() {
+            const sendRegEmail = document.getElementById('sendLink');
+            sendRegEmail.disabled = true;
+            sendRegEmail.textContent = 'Sending...';
+
             const email = window.registrationEmail;
             if (!email) {
                 document.getElementById('errorMessage').textContent = 'Email not found. Please try again.';
                 document.getElementById('errorMessage').classList.remove('hidden');
+                sendRegEmail.disabled = false;
+                sendRegEmail.textContent = 'Send Registration Link';
                 return;
             }
             
@@ -222,6 +237,8 @@
                 } else {
                     errorMessage.textContent = data.message;
                     errorMessage.classList.remove('hidden');
+                    sendRegEmail.disabled = false;
+                    sendRegEmail.textContent = 'Send Registration Link';
                 }
             })
             .catch(error => {
@@ -230,6 +247,8 @@
                 loadingSpinner.innerHTML = '<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-600"></div><p class="text-gray-600 text-sm mt-2">Checking email...</p>';
                 errorMessage.textContent = 'Error sending email. Error: ' + error.message;
                 errorMessage.classList.remove('hidden');
+                sendRegEmail.disabled = false;
+                sendRegEmail.textContent = 'Send Registration Link';
             });
         }
 
@@ -400,6 +419,7 @@
             const password = document.getElementById('password').value;
             const errorDiv = document.getElementById('passwordError');
             const loadingSpinner = document.getElementById('loadingSpinner');
+            const loginBtn = document.getElementById('loginBtn');
 
             if (!email || !password) {
                 errorDiv.textContent = 'Email and password are required';
@@ -410,6 +430,8 @@
             loadingSpinner.innerHTML = '<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-600"></div><p class="text-gray-600 text-sm mt-2">Sending OTP...</p>';
             loadingSpinner.classList.remove('hidden');
             errorDiv.classList.add('hidden');
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'Logging in...';
 
             fetch('/api/login/', {
                 method: 'POST',
@@ -441,6 +463,8 @@
                 } else {
                     errorDiv.textContent = data.message || 'Failed to send OTP';
                     errorDiv.classList.remove('hidden');
+                    loginBtn.disabled = false;
+                    loginBtn.textContent = 'Login';
                 }
             })
             .catch(error => {
@@ -448,6 +472,8 @@
                 console.error('Error during login:', error);
                 errorDiv.textContent = 'Error: ' + error.message;
                 errorDiv.classList.remove('hidden');
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'Login';
             });
         }
         

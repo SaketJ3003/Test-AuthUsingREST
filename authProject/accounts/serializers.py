@@ -283,14 +283,23 @@ class CreateProfileSerializer(serializers.Serializer):
         from .models import EmailVerificationToken
         token = data.get('token')
         
+        if not token:
+            raise serializers.ValidationError({"token": "Registration link is missing. Please request a new link."})
+        
         try:
             verification_token = EmailVerificationToken.objects.get(token=token)
+            
+            
+            if verification_token.is_used:
+                raise serializers.ValidationError({"token": "This registration link has already been used. If you need help, please contact support."})
+            
             if not verification_token.is_valid():
-                raise serializers.ValidationError("Registration link has expired. Please start over.")
+                raise serializers.ValidationError({"token": "Your registration link has expired (valid for 5 minutes). Please request a new registration link."})
+            
             data['verification_token'] = verification_token
             data['email'] = verification_token.email
         except EmailVerificationToken.DoesNotExist:
-            raise serializers.ValidationError("Invalid registration link")
+            raise serializers.ValidationError({"token": "Invalid registration link. Please request a new one."})
         
         return data
 

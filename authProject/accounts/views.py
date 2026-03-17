@@ -87,15 +87,20 @@ def create_profile_page(request):
 
     if not token:
         return render(request, 'accounts/homepage.html', {
-            'error': 'Invalid or expired registration link'
+            'error': 'Invalid registration link. Please request a new registration link.'
         })
 
     try:
         verification_token = EmailVerificationToken.objects.get(token=token)
 
+        if verification_token.is_used:
+            return render(request, 'accounts/homepage.html', {
+                'error': 'This registration link has already been used. If you need help, please contact support.'
+            })
+
         if not verification_token.is_valid():
             return render(request, 'accounts/homepage.html', {
-                'error': 'Registration link has expired. Please start over.'
+                'error': 'Your registration link has expired (valid for 5 minutes). Please request a new registration link below.'
             })
 
         email = verification_token.email.lower()
@@ -149,7 +154,7 @@ def create_profile_page(request):
 
     except EmailVerificationToken.DoesNotExist:
         return render(request, 'accounts/homepage.html', {
-            'error': 'Invalid registration link'
+            'error': 'Invalid registration link. Please request a new registration link below.'
         })
 
 
